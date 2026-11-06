@@ -122,6 +122,67 @@ function send(msg) {
     if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify(msg));
 }
 
+// --- Voice -----------------------------------------------------------------
+
+const SPEECH_WAIT_MS = 5000; // if the detective's voice doesn't arrive, open the mic anyway
+let micReady = false;
+let micOpen = false;
+let currentQuestion = 0;
+let playing = null;
+
+// Captures 16 kHz PCM via an AudioWorklet; chunks are only sent while micOpen.
+async function setupMic() {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+            audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true },
+        });
+        const ctx = new AudioContext({ sampleRate: 16000 });
+        await ctx.audioWorklet.addModule('./mic-worklet.js');
+        const node = new AudioWorkletNode(ctx, 'mic-capture');
+        node.port.onmessage = (e) => {
+            if (micOpen && ws?.readyState === WebSocket.OPEN) ws.send(e.data);
+        };
+        ctx.createMediaStreamSource(stream).connect(node);
+        node.connect(ctx.destination); // keeps the node processing; it outputs silence
+        micReady = true;
+    } catch (err) {
+        console.warn('[mic] unavailable:', err);
+        setMic('Microphone unavailable: type your answers.');
+    }
+}
+
+function setMic(text, live = false) {
+    $('mic').textContent = text;
+    $('mic').className = live ? 'mic live' : 'mic';
+}
+
+function openMic(index) {
+    if (!micReady || index !== currentQuestion || $('answer').disabled) return;
+    micOpen = true;
+    setMic('Listening… answer out loud, or type.', true);
+}
+
+function closeMic() {
+    micOpen = false;
+    setMic('');
+}
+
+function playSpeech(base64, onEnd) {
+    playing?.pause();
+    const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+    const url = URL.createObjectURL(new Blob([bytes], { type: 'audio/mpeg' }));
+    playing = new Audio(url);
+    playing.onended = () => { URL.revokeObjectURL(url); onEnd?.(); };
+    playing.play().catch(() => onEnd?.());
+}
+
+function answerSent() {
+    closeMic();
+    $('answer').value = '';
+    $('answer').disabled = true;
+    setStage('Inspector Noor is watching you…');
+}
+
 function connect() {
     ws = new WebSocket(BACKEND_URL);
     ws.onopen = () => send({ type: 'start', consent: true });
@@ -136,17 +197,34 @@ function onServerMessage(msg) {
     switch (msg.type) {
         case 'case':
             $('case').textContent = msg.brief;
+            if (msg.voice) setupMic();
             break;
         case 'phase':
             if (msg.phase === 'baseline') startBaselineCountdown(msg.seconds);
             if (msg.phase === 'detective') setStage('Inspector Noor is reviewing your answer…');
             break;
-        case 'question':
+        case 'question': {
             clearInterval(baselineTimer);
+            closeMic();
+            currentQuestion = msg.index;
             setStage(`Question ${msg.index}: ${msg.text}`);
             $('answer-form').hidden = false;
             $('answer').disabled = false;
             $('answer').focus();
+            if (micReady) setMic('Inspector Noor is speaking…');
+            const index = msg.index;
+            setTimeout(() => { if (!playing || playing.ended || playing.paused) openMic(index); }, SPEECH_WAIT_MS);
+            break;
+        }
+        case 'speech':
+            // index null = the verdict speech; otherwise mute the mic while Noor talks
+            // (so the voice isn't transcribed) and open it when the question finishes.
+            if (msg.index === currentQuestion && micOpen) closeMic();
+            playSpeech(msg.audio, msg.index == null ? null : () => openMic(msg.index));
+            break;
+        case 'transcript':
+            if (msg.final) answerSent();
+            else $('answer').value = msg.text;
             break;
         case 'meter':
             setMeter(msg.value);
@@ -234,9 +312,7 @@ $('answer-form').addEventListener('submit', (e) => {
     const text = $('answer').value.trim();
     if (!text) return;
     send({ type: 'answer', text });
-    $('answer').value = '';
-    $('answer').disabled = true;
-    setStage('Inspector Noor is watching you…');
+    answerSent();
 });
 
 $('btn-again').addEventListener('click', () => location.reload());

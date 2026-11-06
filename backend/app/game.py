@@ -25,6 +25,7 @@ EVASION_WEIGHT = 0.2
 EVASIVE_REASON_AT = 6
 
 Send = Callable[[dict], Awaitable[None]]
+Speak = Callable[[str], Awaitable[str | None]]  # text -> base64 audio, None on failure
 
 
 class Phase(StrEnum):
@@ -37,10 +38,18 @@ class Phase(StrEnum):
 
 
 class Game:
-    def __init__(self, detective: Detective, send: Send, clock: Callable[[], float] = time.monotonic):
+    def __init__(
+        self,
+        detective: Detective,
+        send: Send,
+        clock: Callable[[], float] = time.monotonic,
+        speak: Speak | None = None,
+    ):
         self._detective = detective
         self._send = send
         self._clock = clock
+        self._speak = speak
+        self._speech_tasks: set[asyncio.Task] = set()
         self.phase = Phase.CONSENT
         self._baseline_samples: list[Sample] = []
         self._baseline: Baseline | None = None
@@ -64,6 +73,26 @@ class Game:
     def close(self) -> None:
         if self._task:
             self._task.cancel()
+        for t in self._speech_tasks:
+            t.cancel()
+
+    @property
+    def question_index(self) -> int:
+        return len(self._turns) + 1
+
+    def _say(self, text: str, index: int | None) -> None:
+        """Voice a line in the background; the text was already sent, so timing never waits on TTS."""
+        if not self._speak:
+            return
+
+        async def run() -> None:
+            audio = await self._speak(text)
+            if audio:
+                await self._send({"type": "speech", "index": index, "audio": audio})
+
+        task = asyncio.create_task(run())
+        self._speech_tasks.add(task)
+        task.add_done_callback(self._speech_tasks.discard)
 
     @property
     def meter(self) -> int:
@@ -74,7 +103,10 @@ class Game:
             return
         self.phase = Phase.BASELINE
         self._baseline_started = self._clock()
-        await self._send({"type": "case", "title": CASE_TITLE, "brief": CASE_BRIEF, "questions": QUESTION_COUNT})
+        await self._send({
+            "type": "case", "title": CASE_TITLE, "brief": CASE_BRIEF,
+            "questions": QUESTION_COUNT, "voice": self._speak is not None,
+        })
         await self._send({"type": "phase", "phase": "baseline", "seconds": BASELINE_SECONDS})
 
     async def _vitals(self, v: Vitals) -> None:
@@ -101,7 +133,8 @@ class Game:
         self._question_at = self._clock()
         self._window = []
         self.phase = Phase.QUESTION
-        await self._send({"type": "question", "index": len(self._turns) + 1, "text": question})
+        await self._send({"type": "question", "index": self.question_index, "text": question})
+        self._say(question, self.question_index)
 
     async def _advance(self, answer: str) -> None:
         try:
@@ -132,7 +165,7 @@ class Game:
             raise
         except Exception:
             log.exception("Game step failed")
-            await self._send({"type": "error", "message": "The detective lost his notes. Please restart."})
+            await self._send({"type": "error", "message": "The detective lost the case notes. Please restart."})
 
     async def _record(self, n: int, answer: str, reaction: Reaction | None, note: str, evasiveness: int | None) -> None:
         reasons = list(reaction.reasons) if reaction else []
@@ -174,3 +207,4 @@ class Game:
             "speech": speech,
             "timeline": self._timeline,
         })
+        self._say(speech, None)

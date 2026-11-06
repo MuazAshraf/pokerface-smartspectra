@@ -35,12 +35,12 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
-    // Grant camera only (no mic yet), and only to our local page.
+    // Grant only camera (vitals) and microphone (voice answers), only to our local page.
     session.defaultSession.setPermissionRequestHandler((wc, permission, callback, details) => {
         const url = (details && details.requestingUrl) || (wc && wc.getURL()) || '';
         const mediaTypes = (details && details.mediaTypes) || [];
-        const cameraOnly = mediaTypes.length === 1 && mediaTypes[0] === 'video';
-        callback(permission === 'media' && cameraOnly && url.startsWith('file://'));
+        const cameraOrMic = mediaTypes.length > 0 && mediaTypes.every((t) => t === 'video' || t === 'audio');
+        callback(permission === 'media' && cameraOrMic && url.startsWith('file://'));
     });
 
     createWindow();

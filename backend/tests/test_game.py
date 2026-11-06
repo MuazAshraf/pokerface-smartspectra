@@ -112,6 +112,32 @@ def test_repeated_llm_question_is_replaced():
     assert questions[1] == FALLBACK_QUESTIONS[0]
 
 
+def test_questions_and_verdict_are_voiced_without_blocking():
+    async def run():
+        sent, clock = [], Clock()
+
+        async def send(msg):
+            sent.append(msg)
+
+        async def speak(text):
+            return f"audio:{text}"
+
+        game = Game(FakeDetective(), send, clock, speak=speak)
+        await game.handle(Start(type="start", consent=True))
+        for _ in range(BASELINE_SECONDS + 1):
+            clock.t += 1
+            await game.handle(vitals())
+        await asyncio.sleep(0)  # let the background TTS task run
+        return sent
+
+    sent = asyncio.run(run())
+    kinds = [m["type"] for m in sent]
+    assert sent[0]["voice"] is True
+    assert kinds.index("question") < kinds.index("speech")  # text first, audio after
+    speech = next(m for m in sent if m["type"] == "speech")
+    assert speech == {"type": "speech", "index": 1, "audio": f"audio:{OPENING_QUESTION}"}
+
+
 def test_answers_outside_question_phase_are_ignored():
     async def run():
         game = Game(FakeDetective(), lambda m: asyncio.sleep(0))

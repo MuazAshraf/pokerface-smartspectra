@@ -16,5 +16,12 @@ class Settings(BaseSettings):
     # Electron pages loaded with loadFile() connect with Origin "file://".
     allowed_origins: list[str] = ["file://"]
 
+    # Voice (optional: without a key the game is text-only).
+    deepgram_api_key: SecretStr | None = None
+    dg_tts_model: str = "aura-2-thalia-en"
+    dg_eot_threshold: float = 0.75
+    dg_eot_timeout_ms: int = 1800
+    dg_mip_opt_out: bool = True  # opt out of Deepgram's Model Improvement Program
+
 
 settings = Settings()
