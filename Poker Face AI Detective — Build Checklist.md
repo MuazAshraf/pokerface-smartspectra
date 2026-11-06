@@ -30,9 +30,9 @@ Sab se bara focus 3 cheezein hain: live signals screen par saaf dikhen, game 3 m
 
 ## Nov 10-13: Voice aur UI
 
-- [ ] Speech-to-text aur AI detective ki voice add karo.
-- [ ] Mic fail hone par text input ka fallback rakho.
-- [ ] Interrogation room wala dark UI banao.
+- [x] Speech-to-text aur AI detective ki voice add karo.
+- [x] Mic fail hone par text input ka fallback rakho.
+- [x] Interrogation room wala dark UI banao.
 - [x] Live pulse, breathing, expression aur Suspicion Meter dikhao.
 - [x] Har reaction ki wajah dikhao, jaise "Breathing changed after Question 4."
 - [x] Kam roshni ya face hatne par warning dikhao.
