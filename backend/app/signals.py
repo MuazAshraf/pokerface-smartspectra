@@ -21,7 +21,7 @@ WEIGHTS = {"pulse": 0.45, "breathing": 0.35, "expression": 0.20}
 @dataclass(frozen=True)
 class Sample:
     pulse: float
-    breathing: float
+    breathing: float | None  # the SDK reports breathing less reliably than pulse
     expression: str | None
 
 
@@ -29,19 +29,19 @@ class Sample:
 class Baseline:
     pulse_mean: float
     pulse_std: float
-    breath_mean: float
+    breath_mean: float | None  # None when breathing was too sparse to baseline
     breath_std: float
     stress_share: float
 
     @classmethod
     def from_samples(cls, samples: list[Sample]) -> "Baseline":
         pulses = [s.pulse for s in samples]
-        breaths = [s.breathing for s in samples]
+        breaths = _breaths(samples)
         return cls(
             pulse_mean=fmean(pulses),
             pulse_std=max(pstdev(pulses), MIN_PULSE_STD),
-            breath_mean=fmean(breaths),
-            breath_std=max(pstdev(breaths), MIN_BREATH_STD),
+            breath_mean=fmean(breaths) if breaths else None,
+            breath_std=max(pstdev(breaths), MIN_BREATH_STD) if breaths else MIN_BREATH_STD,
             stress_share=_stress_share(samples),
         )
 
@@ -53,6 +53,12 @@ class Reaction:
     breath_delta: float
     stress_delta: float
     reasons: list[str]
+
+
+def _breaths(samples: list[Sample]) -> list[float]:
+    """Breathing readings, or [] if too few to trust."""
+    breaths = [s.breathing for s in samples if s.breathing is not None]
+    return breaths if len(breaths) >= MIN_WINDOW_SAMPLES else []
 
 
 def _stress_share(samples: list[Sample]) -> float:
@@ -69,17 +75,19 @@ def read_reaction(baseline: Baseline, samples: list[Sample], question_no: int) -
         return None
 
     pulse_delta = fmean(s.pulse for s in samples) - baseline.pulse_mean
-    breath_delta = fmean(s.breathing for s in samples) - baseline.breath_mean
     stress_delta = _stress_share(samples) - baseline.stress_share
-
     pulse_z = pulse_delta / baseline.pulse_std  # only a rise counts
-    breath_z = abs(breath_delta) / baseline.breath_std  # faster or held breath both count
 
-    score = (
-        WEIGHTS["pulse"] * _clamp01(pulse_z / 3)
-        + WEIGHTS["breathing"] * _clamp01(breath_z / 3)
-        + WEIGHTS["expression"] * _clamp01(stress_delta / 0.5)
-    )
+    parts = {"pulse": _clamp01(pulse_z / 3), "expression": _clamp01(stress_delta / 0.5)}
+    breaths = _breaths(samples)
+    breath_delta, breath_z = 0.0, 0.0
+    if breaths and baseline.breath_mean is not None:
+        breath_delta = fmean(breaths) - baseline.breath_mean
+        breath_z = abs(breath_delta) / baseline.breath_std  # faster or held breath both count
+        parts["breathing"] = _clamp01(breath_z / 3)
+
+    # Renormalise over the signals we actually have, so a missing one doesn't lower the score.
+    score = sum(WEIGHTS[k] * v for k, v in parts.items()) / sum(WEIGHTS[k] for k in parts)
 
     q = f"Question {question_no}"
     reasons = []

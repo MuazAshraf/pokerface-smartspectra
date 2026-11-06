@@ -110,7 +110,9 @@ class Game:
         await self._send({"type": "phase", "phase": "baseline", "seconds": BASELINE_SECONDS})
 
     async def _vitals(self, v: Vitals) -> None:
-        if not v.face_ok or v.pulse is None or v.breathing is None:
+        # A fresh pulse means the SDK is measuring; its framing warnings (e.g. chest
+        # not visible) and a missing breathing rate shouldn't throw that away.
+        if v.pulse is None:
             return
         sample = Sample(v.pulse, v.breathing, v.expression)
 

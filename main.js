@@ -29,6 +29,19 @@ function createWindow() {
     win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
     win.webContents.on('will-navigate', (event) => event.preventDefault());
 
+    // The SDK's native pipeline drains on a worker thread after stop(); quitting
+    // before it finishes aborts Node (napi_throw during FreeEnvironment). So stop
+    // it first, capped so closing can never hang.
+    let stopped = false;
+    win.on('close', (event) => {
+        if (stopped) return;
+        event.preventDefault();
+        stopped = true;
+        const stop = win.webContents.executeJavaScript('window.stopVitals?.()').catch(() => {});
+        const cap = new Promise((resolve) => setTimeout(resolve, 5000));
+        Promise.race([stop, cap]).then(() => win.destroy());
+    });
+
     // The renderer-side SDK needs the key; hand it over at load time instead of
     // baking it into the bundle.
     win.loadFile(path.join(__dirname, 'index.html'), { query: { key: API_KEY } });

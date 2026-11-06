@@ -4,9 +4,7 @@ const {
     SmartSpectraSDK,
     ProcessingStatus,
     ValidationCode,
-    breathingMetrics,
-    cardioMetrics,
-    faceMetrics,
+    MetricType,
 } = require('@smartspectra/node-sdk/renderer');
 const { decodeMetrics } = require('@smartspectra/node-sdk/messages');
 
@@ -14,7 +12,7 @@ const BACKEND_URL = 'ws://127.0.0.1:8000/ws';
 const VITALS_INTERVAL_MS = 1000;
 const STALE_MS = 3000; // a reading older than this is not sent as "current"
 const MAX_RECOVERIES = 3;
-const POSITION_TIP = 'Sit back so your head and upper chest are both in view, and face a light.';
+const POSITION_TIP = 'Face the camera in good light, with your head and shoulders in view.';
 
 // ExpressionType enum from the SmartSpectra data-types schema.
 const EXPRESSIONS = [null, 'Angry', 'Contempt', 'Disgust', 'Fear', 'Happy', 'Neutral', 'Sad', 'Surprise'];
@@ -44,7 +42,9 @@ function freshVitals() {
 
 const sdk = new SmartSpectraSDK({
     apiKey: new URLSearchParams(location.search).get('key'),
-    requestedMetrics: [...breathingMetrics, ...cardioMetrics, ...faceMetrics],
+    // Only what the game uses. The full bundles add chest/abdomen traces, apnea,
+    // HRV and pressure waveforms, which make the SDK insist on the chest in view.
+    requestedMetrics: [MetricType.PULSE_RATE, MetricType.BREATHING_RATE, MetricType.EXPRESSIONS],
 });
 
 sdk.on('streamAvailable', (stream) => {
@@ -59,9 +59,11 @@ sdk.on('processingStatus', (status) => {
 
 sdk.on('validationStatus', (code, _ts, hint) => {
     vitals.face_ok = code === ValidationCode.kOk;
-    $('hint').textContent = vitals.face_ok ? 'Signal good' : hint || VALIDATION[code] || '';
-    $('hint').className = 'hint ' + (vitals.face_ok ? 'ok' : 'warn');
-    if (!ws && !vitals.face_ok) setStage(`${hint || 'Adjusting…'} ${POSITION_TIP}`);
+    // While pulse keeps arriving the SDK is measuring; don't nag about framing.
+    const good = vitals.face_ok || Date.now() - updatedAt.pulse < STALE_MS;
+    $('hint').textContent = good ? 'Signal good' : hint || VALIDATION[code] || '';
+    $('hint').className = 'hint ' + (good ? 'ok' : 'warn');
+    if (!ws && !good) setStage(`${hint || 'Adjusting…'} ${POSITION_TIP}`);
 });
 
 sdk.on('metrics', (buf) => {
@@ -318,3 +320,4 @@ $('answer-form').addEventListener('submit', (e) => {
 $('btn-again').addEventListener('click', () => location.reload());
 
 window.addEventListener('beforeunload', () => sdk.destroy());
+window.stopVitals = () => sdk.stop(); // main.js awaits this before closing the window

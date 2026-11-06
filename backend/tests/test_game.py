@@ -30,11 +30,16 @@ class Clock:
         return self.t
 
 
-def vitals(pulse=70, breathing=14, expression="Neutral"):
-    return Vitals(type="vitals", pulse=pulse, breathing=breathing, expression=expression, face_ok=True)
+def vitals(pulse=70, breathing=14, expression="Neutral", face_ok=True):
+    return Vitals(type="vitals", pulse=pulse, breathing=breathing, expression=expression, face_ok=face_ok)
 
 
-async def play(detective, stressed_from=None):
+def pulse_only(pulse=70, breathing=14, expression="Neutral"):
+    # SDK still measuring pulse, but no breathing rate and a "chest not visible" warning.
+    return vitals(pulse, None, expression, face_ok=False)
+
+
+async def play(detective, stressed_from=None, make=vitals):
     sent, clock = [], Clock()
 
     async def send(msg):
@@ -44,14 +49,14 @@ async def play(detective, stressed_from=None):
     await game.handle(Start(type="start", consent=True))
     for _ in range(BASELINE_SECONDS + 1):
         clock.t += 1
-        await game.handle(vitals())
+        await game.handle(make())
     assert game.phase is Phase.QUESTION
 
     for q in range(1, QUESTION_COUNT + 1):
         stressed = stressed_from is not None and q >= stressed_from
         for _ in range(MIN_ANSWER_WINDOW_S):
             clock.t += 1
-            await game.handle(vitals(90, 22, "Fear") if stressed else vitals())
+            await game.handle(make(90, 22, "Fear") if stressed else make())
         await game.handle(Answer(type="answer", text=f"answer {q}"))
         await game._task
     return game, sent
@@ -163,3 +168,9 @@ def test_protocol_rejects_bad_messages(raw):
 def test_sensor_glitches_become_missing_readings():
     msg = ClientMessage.validate_json('{"type": "vitals", "pulse": 999, "breathing": 61, "face_ok": true}')
     assert msg.pulse is None and msg.breathing is None
+
+
+def test_pulse_alone_is_enough_to_play_and_catch_stress():
+    game, sent = asyncio.run(play(FakeDetective(), stressed_from=3, make=pulse_only))
+    assert game.phase is Phase.VERDICT
+    assert sent[-1]["suspicious"] is True

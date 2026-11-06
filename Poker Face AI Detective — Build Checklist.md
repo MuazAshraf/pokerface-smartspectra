@@ -53,7 +53,7 @@ Sab se bara focus 3 cheezein hain: live signals screen par saaf dikhen, game 3 m
 - [x] App me likho: "Entertainment game. Not a real lie detector or medical tool."
 - [ ] Presage ki Telemetry and Privacy page parh kar data handling likho.
 - [ ] Disclose karo ke speech ya text kis AI service ko jata hai.
-- [ ] README me setup, `.env.example`, architecture aur credits add karo.
+- [x] README me setup, `.env.example`, architecture aur credits add karo.
 - [ ] 60-90 second ki demo video banao, jisme live signals aur game ka reaction saaf dikhe.
 
 ## Nov 21: Submit

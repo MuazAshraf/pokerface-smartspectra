@@ -35,3 +35,12 @@ def test_held_breath_counts_but_lower_pulse_does_not():
 def test_too_few_samples_returns_none():
     b = Baseline.from_samples(CALM)
     assert read_reaction(b, CALM[:2], 1) is None
+
+
+def test_breathing_is_optional_and_pulse_alone_can_still_score_high():
+    b = Baseline.from_samples([Sample(70 + (i % 3), None, "Neutral") for i in range(20)])
+    assert b.breath_mean is None
+    r = read_reaction(b, [Sample(84, None, "Fear")] * 8, 1)
+    assert r.score > 0.8  # weights renormalise over the signals that exist
+    assert "Pulse rose +13 BPM after Question 1" in r.reasons
+    assert not any("Breathing" in s for s in r.reasons)
