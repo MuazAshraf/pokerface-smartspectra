@@ -6,7 +6,8 @@
   "main": "main.js",
   "scripts": {
     "build": "esbuild renderer.js --bundle --outfile=dist/renderer.bundle.js --platform=browser --format=iife --log-level=warning",
-    "start": "npm run build && electron ."
+    "start": "npm run build && electron .",
+    "backend": "cd backend && uv run fastapi run app/main.py --host 127.0.0.1 --port 8000"
   },
   "dependencies": {
     "@smartspectra/node-sdk": "^3.4.0"

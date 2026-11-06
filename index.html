@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta http-equiv="Content-Security-Policy"
-          content="default-src 'self'; style-src 'self' 'unsafe-inline'; worker-src 'self' blob:; media-src blob:;">
+          content="default-src 'self'; style-src 'self' 'unsafe-inline'; worker-src 'self' blob:; media-src blob:; connect-src ws://127.0.0.1:8000;">
     <title>Poker Face: AI Detective</title>
     <link rel="stylesheet" href="./styles.css">
 </head>
@@ -13,23 +13,54 @@
         <span id="status" class="badge">Idle</span>
     </header>
 
+    <div id="consent" class="overlay">
+        <div class="card">
+            <h2>Before we begin</h2>
+            <p><b>Entertainment game. Not a real lie detector or medical tool.</b></p>
+            <ul>
+                <li>Your camera is used to estimate pulse, breathing and facial expression. The Presage SmartSpectra SDK does this on your computer; Presage's server is only contacted to validate the app's API key.</li>
+                <li>Your typed answers and a short summary of signal changes (e.g. "pulse +8 BPM") are sent to OpenAI to write the detective's questions. No video or images leave your computer.</li>
+                <li>Nothing is saved. Everything is discarded when the game ends.</li>
+            </ul>
+            <label class="agree"><input type="checkbox" id="agree"> I understand and agree to play.</label>
+            <button id="btn-consent" disabled>Start interrogation</button>
+        </div>
+    </div>
+
     <main>
-        <div class="preview">
-            <video id="preview" autoplay playsinline muted></video>
-            <div id="hint" class="hint">Press Start and face the camera.</div>
+        <div class="left">
+            <div class="preview">
+                <video id="preview" autoplay playsinline muted></video>
+                <div id="hint" class="hint">Waiting for consent…</div>
+            </div>
+            <section class="signals">
+                <div class="signal"><label>Pulse</label><b id="pulse">—</b><small>BPM</small></div>
+                <div class="signal"><label>Breathing</label><b id="breathing">—</b><small>BR/min</small></div>
+                <div class="signal"><label>Expression</label><b id="expression">—</b><small id="expression-conf"></small></div>
+            </section>
         </div>
 
-        <section class="signals">
-            <div class="signal"><label>Pulse</label><b id="pulse">—</b><small>BPM</small></div>
-            <div class="signal"><label>Breathing</label><b id="breathing">—</b><small>BR/min</small></div>
-            <div class="signal"><label>Expression</label><b id="expression">—</b><small id="expression-conf"></small></div>
+        <section class="game">
+            <div class="meter"><label>Suspicion</label><div class="bar"><div id="meter-fill"></div></div><b id="meter-value">0</b></div>
+            <div id="case" class="case"></div>
+            <div id="stage" class="stage">Accept the consent screen to begin.</div>
+            <form id="answer-form" hidden>
+                <input id="answer" maxlength="300" autocomplete="off" placeholder="Type your answer…">
+                <button type="submit">Answer</button>
+            </form>
+            <ul id="reasons" class="reasons"></ul>
             <div id="error" class="error" hidden></div>
-            <div class="controls">
-                <button id="btn-start">Start</button>
-                <button id="btn-stop" disabled>Stop</button>
-            </div>
         </section>
     </main>
+
+    <div id="verdict" class="overlay" hidden>
+        <div class="card wide">
+            <h2 id="verdict-title"></h2>
+            <p id="verdict-speech" class="speech"></p>
+            <table><thead><tr><th>#</th><th>Question</th><th>Your answer</th><th>Signals</th></tr></thead><tbody id="timeline"></tbody></table>
+            <button id="btn-again">Play again</button>
+        </div>
+    </div>
 
     <footer>Entertainment game. Not a real lie detector or medical tool.</footer>
     <script src="./dist/renderer.bundle.js"></script>

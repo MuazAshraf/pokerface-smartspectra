@@ -10,33 +10,33 @@ Sab se bara focus 3 cheezein hain: live signals screen par saaf dikhen, game 3 m
 
 **Target:** Webcam se live data screen par nazar aaye. Warna baqi kaam rok kar pehle ye fix karo.
 
-- [ ] DEV.to par challenge join karo.
-- [ ] Presage ki API key lo.
-- [ ] Naya public GitHub repo banao.
-- [ ] Electron app me SmartSpectra SDK install karo (SDK Node.js aur Electron support karta hai).
-- [ ] Key `.env` me rakho aur `.env` ko `.gitignore` me daalo.
-- [ ] Pulse, breathing aur expression screen par live dikhao.
-- [ ] Agar Claude Code use karte ho, to Presage ki `using-smartspectra` Agent Skill install karo.
+- [x] DEV.to par challenge join karo.
+- [x] Presage ki API key lo.
+- [x] Naya public GitHub repo banao.
+- [x] Electron app me SmartSpectra SDK install karo (SDK Node.js aur Electron support karta hai).
+- [x] Key `.env` me rakho aur `.env` ko `.gitignore` me daalo.
+- [x] Pulse, breathing aur expression screen par live dikhao.
+- [x] Agar Claude Code use karte ho, to Presage ki `using-smartspectra` Agent Skill install karo.
 
 ## Nov 7-9: Core game
 
-- [ ] Ek simple case likho: "Museum se diamond chori hua. Aap suspect ho."
-- [ ] Game ke steps fix karo: consent, 30-second calm baseline, 6-8 sawal, final verdict.
-- [ ] Har player ka personal baseline banao.
-- [ ] Baseline se 10-30 second ka change nikaal kar **Suspicion Meter** chalao.
-- [ ] Python FastAPI backend banao aur Electron ko WebSocket se connect karo.
-- [ ] LLM ko signal summary do, taake agla sawal us ke hisaab se badle.
-- [ ] Pehle text input se poora game test karo.
+- [x] Ek simple case likho: "Museum se diamond chori hua. Aap suspect ho."
+- [x] Game ke steps fix karo: consent, 30-second calm baseline, 6-8 sawal, final verdict.
+- [x] Har player ka personal baseline banao.
+- [x] Baseline se 10-30 second ka change nikaal kar **Suspicion Meter** chalao.
+- [x] Python FastAPI backend banao aur Electron ko WebSocket se connect karo.
+- [x] LLM ko signal summary do, taake agla sawal us ke hisaab se badle.
+- [x] Pehle text input se poora game test karo.
 
 ## Nov 10-13: Voice aur UI
 
 - [ ] Speech-to-text aur AI detective ki voice add karo.
 - [ ] Mic fail hone par text input ka fallback rakho.
 - [ ] Interrogation room wala dark UI banao.
-- [ ] Live pulse, breathing, expression aur Suspicion Meter dikhao.
-- [ ] Har reaction ki wajah dikhao, jaise "Breathing changed after Question 4."
-- [ ] Kam roshni ya face hatne par warning dikhao.
-- [ ] Game ke end par timeline dikhao ke kis sawal par kya badla.
+- [x] Live pulse, breathing, expression aur Suspicion Meter dikhao.
+- [x] Har reaction ki wajah dikhao, jaise "Breathing changed after Question 4."
+- [x] Kam roshni ya face hatne par warning dikhao.
+- [x] Game ke end par timeline dikhao ke kis sawal par kya badla.
 
 ## Nov 14-17: Testing
 
@@ -49,8 +49,8 @@ Sab se bara focus 3 cheezein hain: live signals screen par saaf dikhen, game 3 m
 
 ## Nov 18-20: Rules aur demo
 
-- [ ] Consent screen par batao ke kya data use hota hai.
-- [ ] App me likho: "Entertainment game. Not a real lie detector or medical tool."
+- [x] Consent screen par batao ke kya data use hota hai.
+- [x] App me likho: "Entertainment game. Not a real lie detector or medical tool."
 - [ ] Presage ki Telemetry and Privacy page parh kar data handling likho.
 - [ ] Disclose karo ke speech ya text kis AI service ko jata hai.
 - [ ] README me setup, `.env.example`, architecture aur credits add karo.
