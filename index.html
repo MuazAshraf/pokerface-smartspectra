@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Security-Policy"
+          content="default-src 'self'; style-src 'self' 'unsafe-inline'; worker-src 'self' blob:; media-src blob:;">
+    <title>Poker Face: AI Detective</title>
+    <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+    <header>
+        <h1>Poker Face <span>AI Detective</span></h1>
+        <span id="status" class="badge">Idle</span>
+    </header>
+
+    <main>
+        <div class="preview">
+            <video id="preview" autoplay playsinline muted></video>
+            <div id="hint" class="hint">Press Start and face the camera.</div>
+        </div>
+
+        <section class="signals">
+            <div class="signal"><label>Pulse</label><b id="pulse">—</b><small>BPM</small></div>
+            <div class="signal"><label>Breathing</label><b id="breathing">—</b><small>BR/min</small></div>
+            <div class="signal"><label>Expression</label><b id="expression">—</b><small id="expression-conf"></small></div>
+            <div id="error" class="error" hidden></div>
+            <div class="controls">
+                <button id="btn-start">Start</button>
+                <button id="btn-stop" disabled>Stop</button>
+            </div>
+        </section>
+    </main>
+
+    <footer>Entertainment game. Not a real lie detector or medical tool.</footer>
+    <script src="./dist/renderer.bundle.js"></script>
+</body>
+</html>
